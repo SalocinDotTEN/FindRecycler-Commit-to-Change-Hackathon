@@ -1,0 +1,7 @@
+{
+  "name": "FindRecycler",
+  "description": "Locate the nearest recycling facilities, discover what materials are accepted, and contribute to the community by crowdsourcing new recycling spots.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
