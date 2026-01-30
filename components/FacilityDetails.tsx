@@ -68,11 +68,11 @@ const FacilityDetails: React.FC<FacilityDetailsProps> = ({ facility, onClose, on
               <p className="font-bold text-slate-800">{averageRating} Stars</p>
               <p className="text-slate-500 text-xs">{facility.reviews.length} reviews</p>
             </div>
-            <span className={`ml-auto px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-              facility.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-            }`}>
-              {facility.status}
-            </span>
+            {facility.isCrowdsourced && (
+               <span className="ml-auto px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700">
+                 Crowdsourced
+               </span>
+            )}
           </div>
 
           <div className="space-y-3">

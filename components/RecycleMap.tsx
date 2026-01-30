@@ -1,6 +1,6 @@
 
-import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { RecyclingFacility, Location } from '../types';
 
@@ -30,12 +30,35 @@ const UserIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const PendingIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 interface RecycleMapProps {
   facilities: RecyclingFacility[];
   center: Location;
   userLocation: Location | null;
   onSelectFacility: (facility: RecyclingFacility) => void;
+  isAdding?: boolean;
+  tempLocation?: Location | null;
+  onMapClick?: (loc: Location) => void;
 }
+
+const MapEvents = ({ onMapClick, isAdding }: { onMapClick?: (loc: Location) => void, isAdding?: boolean }) => {
+  useMapEvents({
+    click(e) {
+      if (isAdding && onMapClick) {
+        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
+    },
+  });
+  return null;
+};
 
 const ChangeView = ({ center }: { center: Location }) => {
   const map = useMap();
@@ -45,7 +68,15 @@ const ChangeView = ({ center }: { center: Location }) => {
   return null;
 };
 
-const RecycleMap: React.FC<RecycleMapProps> = ({ facilities, center, userLocation, onSelectFacility }) => {
+const RecycleMap: React.FC<RecycleMapProps> = ({ 
+  facilities, 
+  center, 
+  userLocation, 
+  onSelectFacility,
+  isAdding,
+  tempLocation,
+  onMapClick
+}) => {
   return (
     <MapContainer center={[center.lat, center.lng]} zoom={13} scrollWheelZoom={true} className="h-full w-full rounded-xl shadow-inner border border-green-200">
       <TileLayer
@@ -53,11 +84,23 @@ const RecycleMap: React.FC<RecycleMapProps> = ({ facilities, center, userLocatio
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <ChangeView center={center} />
+      <MapEvents onMapClick={onMapClick} isAdding={isAdding} />
       
       {userLocation && (
         <Marker position={[userLocation.lat, userLocation.lng]} icon={UserIcon}>
           <Popup>
-            <div className="font-semibold text-blue-600">You are here</div>
+            <div className="font-semibold text-blue-600 text-sm">You are here</div>
+          </Popup>
+        </Marker>
+      )}
+
+      {isAdding && tempLocation && (
+        <Marker position={[tempLocation.lat, tempLocation.lng]} icon={PendingIcon}>
+          <Popup autoOpen>
+            <div className="p-2 text-center">
+              <p className="font-bold text-orange-600 text-sm">New Spot</p>
+              <p className="text-[10px] text-slate-500">Fill details in the sidebar</p>
+            </div>
           </Popup>
         </Marker>
       )}
@@ -68,13 +111,13 @@ const RecycleMap: React.FC<RecycleMapProps> = ({ facilities, center, userLocatio
           position={[facility.location.lat, facility.location.lng]}
           icon={RecyclerIcon}
           eventHandlers={{
-            click: () => onSelectFacility(facility),
+            click: () => !isAdding && onSelectFacility(facility),
           }}
         >
           <Popup>
             <div className="p-1">
-              <h3 className="font-bold text-green-800">{facility.name}</h3>
-              <p className="text-xs text-slate-600 mb-2">{facility.address}</p>
+              <h3 className="font-bold text-green-800 text-sm">{facility.name}</h3>
+              <p className="text-[10px] text-slate-600 mb-2">{facility.address}</p>
               <div className="flex flex-wrap gap-1">
                 {facility.materials.slice(0, 3).map(m => (
                   <span key={m} className="px-1 py-0.5 bg-green-100 text-green-700 text-[10px] rounded border border-green-200">{m}</span>

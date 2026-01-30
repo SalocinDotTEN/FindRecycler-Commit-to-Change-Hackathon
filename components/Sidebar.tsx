@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
-import { RecyclingFacility, Review } from '../types';
+import { RecyclingFacility, Review, Location } from '../types';
 import { MATERIAL_TYPES } from '../constants';
-// Added Star to the imports from lucide-react to fix the error on line 142
-import { MapPin, Clock, Phone, Plus, Filter, Info, ChevronRight, Recycle, CheckCircle2, Clock3, Star } from 'lucide-react';
+import { MapPin, Clock, Phone, Plus, Filter, Info, ChevronRight, Recycle, Star } from 'lucide-react';
 import FacilityDetails from './FacilityDetails';
+import AddFacilityForm from './AddFacilityForm';
 
 interface SidebarProps {
   facilities: RecyclingFacility[];
@@ -14,6 +14,10 @@ interface SidebarProps {
   activeFilter: string;
   onFilterChange: (material: string) => void;
   onAddReview: (facilityId: string, review: Omit<Review, 'id' | 'date'>) => void;
+  isAdding: boolean;
+  tempLocation: Location | null;
+  onCancelAdd: () => void;
+  onSaveAdd: (facility: Omit<RecyclingFacility, 'id' | 'reviews' | 'status'>) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -23,23 +27,35 @@ const Sidebar: React.FC<SidebarProps> = ({
   onFacilityClick, 
   activeFilter, 
   onFilterChange,
-  onAddReview
+  onAddReview,
+  isAdding,
+  tempLocation,
+  onCancelAdd,
+  onSaveAdd
 }) => {
-  const [showOnlyApproved, setShowOnlyApproved] = useState(true);
-
-  // When a facility is selected, we might want to show details.
-  // We'll manage a "isDetailOpen" local state if we want it to overlay.
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const handleItemClick = (f: RecyclingFacility) => {
+    if (isAdding) return;
     onFacilityClick(f);
     setIsDetailOpen(true);
   };
 
-  const filteredList = facilities.filter(f => showOnlyApproved ? f.status === 'approved' : true);
+  if (isAdding && tempLocation) {
+    return (
+      <div className="flex flex-col h-full bg-white animate-in slide-in-from-left duration-300">
+        <AddFacilityForm 
+          onClose={onCancelAdd} 
+          onSave={onSaveAdd} 
+          currentPos={tempLocation} 
+          inline={true}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-green-100 overflow-hidden relative">
+    <div className="flex flex-col h-full bg-white overflow-hidden relative">
       {selectedFacility && isDetailOpen && (
         <FacilityDetails 
           facility={selectedFacility} 
@@ -88,27 +104,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             </button>
           ))}
         </div>
-
-        <div className="flex items-center justify-between">
-          <button 
-            onClick={() => setShowOnlyApproved(!showOnlyApproved)}
-            className="text-[10px] flex items-center gap-1 font-bold text-slate-500 hover:text-green-600 transition-colors uppercase tracking-widest"
-          >
-            {showOnlyApproved ? <CheckCircle2 size={12} /> : <Clock3 size={12} />}
-            {showOnlyApproved ? "Showing Approved" : "Showing All (Incl. Pending)"}
-          </button>
-        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {filteredList.length === 0 ? (
+        {facilities.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-slate-400 px-8 text-center">
             <Filter size={48} className="mb-4 opacity-20" />
             <p className="text-sm">No facilities found for this selection.</p>
           </div>
         ) : (
           <ul className="divide-y divide-green-50">
-            {filteredList.map((f) => (
+            {facilities.map((f) => (
               <li 
                 key={f.id}
                 onClick={() => handleItemClick(f)}
@@ -119,7 +125,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="font-semibold text-green-900 leading-tight">{f.name}</h3>
                   <div className="flex gap-1">
-                    {f.status === 'pending' && <span className="text-[8px] bg-amber-50 text-amber-600 border border-amber-100 px-1 rounded">PENDING</span>}
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-md border ${
                       f.isCrowdsourced ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-green-100 text-green-600 border-green-100'
                     }`}>

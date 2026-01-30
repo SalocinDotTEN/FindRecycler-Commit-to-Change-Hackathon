@@ -4,7 +4,6 @@ import { RecyclingFacility, Location, Review } from './types';
 import { INITIAL_FACILITIES } from './constants.tsx';
 import RecycleMap from './components/RecycleMap';
 import Sidebar from './components/Sidebar';
-import AddFacilityForm from './components/AddFacilityForm';
 import AIAssistant from './components/AIAssistant';
 import Logo from './components/Logo';
 import { Search, Loader2, Navigation, Compass, CheckCircle } from 'lucide-react';
@@ -15,7 +14,8 @@ const App: React.FC = () => {
   const [mapCenter, setMapCenter] = useState<Location>({ lat: 3.139, lng: 101.6869 });
   const [userLocation, setUserLocation] = useState<Location | null>(null);
   const [selectedFacility, setSelectedFacility] = useState<RecyclingFacility | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [tempLocation, setTempLocation] = useState<Location | null>(null);
   const [activeFilter, setActiveFilter] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
@@ -48,10 +48,23 @@ const App: React.FC = () => {
   };
 
   const handleFacilitySelect = (facility: RecyclingFacility | null) => {
+    if (isAdding) return; // Don't switch selection while adding
     setSelectedFacility(facility);
     if (facility) {
       setMapCenter(facility.location);
     }
+  };
+
+  const handleStartAdding = () => {
+    setIsAdding(true);
+    setSelectedFacility(null);
+    setTempLocation(mapCenter);
+    showToast("Click on the map to set the location!");
+  };
+
+  const handleCancelAdding = () => {
+    setIsAdding(false);
+    setTempLocation(null);
   };
 
   const handleAddFacility = (newFacilityData: Omit<RecyclingFacility, 'id' | 'reviews' | 'status'>) => {
@@ -59,11 +72,12 @@ const App: React.FC = () => {
       ...newFacilityData,
       id: Math.random().toString(36).substr(2, 9),
       reviews: [],
-      status: 'pending', // Submissions start as pending
+      status: 'approved', // Moderation removed: added directly
     };
     setFacilities(prev => [facility, ...prev]);
-    setIsAddModalOpen(false);
-    showToast("Submission received! Pending admin approval.");
+    setIsAdding(false);
+    setTempLocation(null);
+    showToast("Successfully published your recycling spot!");
   };
 
   const handleAddReview = (facilityId: string, reviewData: Omit<Review, 'id' | 'date'>) => {
@@ -80,7 +94,6 @@ const App: React.FC = () => {
       return f;
     }));
 
-    // If the currently selected facility is the one being reviewed, update it too
     if (selectedFacility?.id === facilityId) {
       setSelectedFacility(prev => prev ? { ...prev, reviews: [...prev.reviews, newReview] } : null);
     }
@@ -147,7 +160,7 @@ const App: React.FC = () => {
         <div className="flex items-center gap-4">
           <button 
             onClick={handleAISearchNearby}
-            disabled={isSearching || !userLocation}
+            disabled={isSearching || !userLocation || isAdding}
             className={`flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full text-sm font-bold shadow-lg shadow-emerald-100 transition-all hover:bg-emerald-700 active:scale-95 disabled:opacity-50`}
           >
             {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Navigation size={16} />}
@@ -158,16 +171,20 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-80 md:w-96 shrink-0 z-10 shadow-xl">
+        {/* Sidebar / Form Flow */}
+        <div className="w-80 md:w-96 shrink-0 z-10 shadow-xl border-r border-green-100 bg-white">
           <Sidebar 
             facilities={filteredFacilities}
             selectedFacility={selectedFacility}
-            onAddClick={() => setIsAddModalOpen(true)}
+            onAddClick={handleStartAdding}
             onFacilityClick={handleFacilitySelect}
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
             onAddReview={handleAddReview}
+            isAdding={isAdding}
+            tempLocation={tempLocation}
+            onCancelAdd={handleCancelAdding}
+            onSaveAdd={handleAddFacility}
           />
         </div>
 
@@ -180,22 +197,16 @@ const App: React.FC = () => {
             </div>
           )}
           <RecycleMap 
-            facilities={filteredFacilities.filter(f => f.status === 'approved')} 
+            facilities={filteredFacilities} 
             center={mapCenter} 
             userLocation={userLocation}
             onSelectFacility={handleFacilitySelect}
+            isAdding={isAdding}
+            tempLocation={tempLocation}
+            onMapClick={(loc) => isAdding && setTempLocation(loc)}
           />
         </div>
       </main>
-
-      {/* Crowdsourcing Modal */}
-      {isAddModalOpen && (
-        <AddFacilityForm 
-          onClose={() => setIsAddModalOpen(false)} 
-          onSave={handleAddFacility}
-          currentPos={mapCenter}
-        />
-      )}
 
       {/* AI Eco-Assistant Widget */}
       <AIAssistant />
