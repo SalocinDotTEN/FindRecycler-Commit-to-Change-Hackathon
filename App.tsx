@@ -6,8 +6,7 @@ import RecycleMap from './components/RecycleMap';
 import Sidebar from './components/Sidebar';
 import AIAssistant from './components/AIAssistant';
 import Logo from './components/Logo';
-import { Search, Loader2, Navigation, Compass, CheckCircle } from 'lucide-react';
-import { findFacilitiesNearby } from './services/geminiService';
+import { Search, Compass, CheckCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [facilities, setFacilities] = useState<RecyclingFacility[]>(INITIAL_FACILITIES);
@@ -17,7 +16,7 @@ const App: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [tempLocation, setTempLocation] = useState<Location | null>(null);
   const [activeFilter, setActiveFilter] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -72,7 +71,7 @@ const App: React.FC = () => {
       ...newFacilityData,
       id: Math.random().toString(36).substr(2, 9),
       reviews: [],
-      status: 'approved', // Moderation removed: added directly
+      status: 'approved',
     };
     setFacilities(prev => [facility, ...prev]);
     setIsAdding(false);
@@ -101,38 +100,21 @@ const App: React.FC = () => {
     showToast("Review posted! Thank you for your feedback.");
   };
 
-  const handleAISearchNearby = async () => {
-    if (!userLocation) return;
-    setIsSearching(true);
-    const { sources } = await findFacilitiesNearby(userLocation.lat, userLocation.lng);
-    
-    const newFacilities: RecyclingFacility[] = sources.map((src, i) => ({
-      id: `ai-${i}-${Date.now()}`,
-      name: src.title,
-      address: "Verified via Google Maps",
-      location: userLocation,
-      materials: ['General Recycling'],
-      type: 'Center',
-      openingHours: 'Check link for hours',
-      status: 'approved',
-      reviews: []
-    }));
-
-    if (newFacilities.length > 0) {
-      setFacilities(prev => [...newFacilities, ...prev]);
-      showToast(`Found ${newFacilities.length} new locations via AI!`);
-    }
-    
-    setIsSearching(false);
-  };
-
   const filteredFacilities = useMemo(() => {
-    let list = facilities;
-    if (activeFilter) {
-      list = list.filter(f => f.materials.includes(activeFilter));
-    }
-    return list;
-  }, [facilities, activeFilter]);
+    return facilities.filter(f => {
+      // Filter by material type if a chip is selected
+      const matchesMaterial = activeFilter ? f.materials.includes(activeFilter) : true;
+      
+      // Filter by text search query (Local data only)
+      const searchLower = searchQuery.toLowerCase().trim();
+      const matchesSearch = searchLower === '' || 
+        f.name.toLowerCase().includes(searchLower) || 
+        f.address.toLowerCase().includes(searchLower) ||
+        f.materials.some(m => m.toLowerCase().includes(searchLower));
+
+      return matchesMaterial && matchesSearch;
+    });
+  }, [facilities, activeFilter, searchQuery]);
 
   return (
     <div className="flex flex-col h-screen bg-green-50 overflow-hidden font-sans">
@@ -148,24 +130,30 @@ const App: React.FC = () => {
       <header className="h-16 bg-white border-b border-green-100 px-6 flex items-center justify-between z-10 shadow-sm shrink-0">
         <Logo size="md" />
         
-        <div className="hidden md:flex flex-1 max-w-lg mx-8 relative">
+        <div className="flex-1 max-w-xl mx-8 relative group">
           <input 
             type="text" 
-            placeholder="Search city or specific material..." 
-            className="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-green-500 transition-all outline-none"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search listed facilities by name or material..." 
+            className="w-full bg-slate-100 border border-transparent rounded-full py-2.5 pl-11 pr-4 text-sm focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none shadow-sm group-hover:bg-slate-200/50"
           />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" size={18} />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={handleAISearchNearby}
-            disabled={isSearching || !userLocation || isAdding}
-            className={`flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full text-sm font-bold shadow-lg shadow-emerald-100 transition-all hover:bg-emerald-700 active:scale-95 disabled:opacity-50`}
-          >
-            {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Navigation size={16} />}
-            AI Search
-          </button>
+        <div className="hidden md:block">
+          <div className="text-right">
+            <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Environmentally Conscious</p>
+            <p className="text-xs text-slate-400">Find the best spot for your waste</p>
+          </div>
         </div>
       </header>
 
