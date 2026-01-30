@@ -26,7 +26,7 @@ const Logo: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'md' }) => {
         </svg>
       </div>
       <div className={`font-bold tracking-tight text-green-900 ${size === 'lg' ? 'text-4xl mt-4' : 'text-xl'}`}>
-        Find <span className="text-green-600">Recycler</span><span className="text-green-400 font-light">.com</span>
+        Find <span className="text-green-600">Recycler</span><span className="text-green-400 font-light">.</span>
       </div>
     </div>
   );
