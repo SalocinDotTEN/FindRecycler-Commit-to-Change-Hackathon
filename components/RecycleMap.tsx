@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { RecyclingFacility, Location } from '../types';
+import { Navigation } from 'lucide-react';
 
 // Fix for default marker icon issues in React environments
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -115,13 +116,24 @@ const RecycleMap: React.FC<RecycleMapProps> = ({
           }}
         >
           <Popup>
-            <div className="p-1">
+            <div className="p-1 min-w-[150px]">
               <h3 className="font-bold text-green-800 text-sm">{facility.name}</h3>
               <p className="text-[10px] text-slate-600 mb-2">{facility.address}</p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 mb-2">
                 {facility.materials.slice(0, 3).map(m => (
                   <span key={m} className="px-1 py-0.5 bg-green-100 text-green-700 text-[10px] rounded border border-green-200">{m}</span>
                 ))}
+              </div>
+              <div className="pt-2 border-t border-slate-100">
+                <a 
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${facility.location.lat},${facility.location.lng}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-green-600 font-bold hover:underline flex items-center gap-1.5"
+                >
+                  <Navigation size={12} className="shrink-0" />
+                  Get Directions
+                </a>
               </div>
             </div>
           </Popup>

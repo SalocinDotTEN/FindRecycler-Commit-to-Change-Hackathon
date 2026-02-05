@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { RecyclingFacility, Review } from '../types';
-import { X, MapPin, Clock, Phone, Info, Star, Send, User, Calendar, ImageIcon } from 'lucide-react';
+import { X, MapPin, Clock, Phone, Info, Star, Send, User, Calendar, ImageIcon, Navigation } from 'lucide-react';
 
 interface FacilityDetailsProps {
   facility: RecyclingFacility;
@@ -92,10 +92,22 @@ const FacilityDetails: React.FC<FacilityDetailsProps> = ({ facility, onClose, on
                 <span className="text-slate-600">{facility.phone}</span>
               </div>
             )}
+            
+            {/* Directions Button */}
+            <a 
+              href={`https://www.google.com/maps/dir/?api=1&destination=${facility.location.lat},${facility.location.lng}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 bg-green-50 text-green-700 rounded-xl text-sm font-bold hover:bg-green-100 transition-all border border-green-200 shadow-sm mt-2 active:scale-[0.98]"
+            >
+              <Navigation size={18} />
+              Get Directions
+            </a>
+
             {facility.description && (
-              <div className="flex gap-3 text-sm">
+              <div className="flex gap-3 text-sm pt-2">
                 <Info className="text-green-600 shrink-0" size={18} />
-                <span className="text-slate-600 italic">{facility.description}</span>
+                <span className="text-slate-600 italic leading-relaxed">{facility.description}</span>
               </div>
             )}
           </div>
